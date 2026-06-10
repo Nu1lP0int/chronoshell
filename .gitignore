@@ -1,0 +1,4 @@
+node_modules/
+.chronoshell/
+*.log
+.DS_Store

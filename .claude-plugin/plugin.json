@@ -1,0 +1,9 @@
+{
+  "name": "chronoshell",
+  "version": "0.1.0",
+  "description": "Araç-çağrısı seviyesinde zaman makinesi: Claude'un her dosya-değiştiren adımından önce gölge bir snapshot alır; tek bir adımı bile saniyede geri sararsın. Claude'a korkusuzca tam otonomi vermeni sağlar. Kendi git'ine dokunmaz.",
+  "author": { "name": "Enes" },
+  "license": "MIT",
+  "keywords": ["undo", "rewind", "time-travel", "safety", "autonomy", "hooks", "snapshot"],
+  "category": "workflow"
+}

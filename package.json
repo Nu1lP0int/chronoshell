@@ -1,0 +1,10 @@
+{
+  "name": "chronoshell",
+  "version": "0.1.0",
+  "description": "Araç-çağrısı seviyesinde zaman makinesi — Claude Code'da her adımı tek tek geri sar. Kendi git'ine dokunmaz.",
+  "license": "MIT",
+  "type": "commonjs",
+  "scripts": { "test": "node --test tests/*.test.mjs" },
+  "keywords": ["claude-code", "plugin", "undo", "rewind", "time-travel", "snapshot", "safety"],
+  "engines": { "node": ">=18" }
+}
