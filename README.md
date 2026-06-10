@@ -41,19 +41,35 @@ Geri sarma işlemi de kaydedilir — yani **geri sarmayı da geri alabilirsin** 
 
 ## Kurulum
 
-Claude Code plugin marketplace üzerinden:
+Claude Code içinde, repodaki `marketplace add` → `install` → `reload` akışıyla:
 
 ```
-/plugin marketplace add <kullanıcı>/chronoshell
+/plugin marketplace add <github-kullanıcı>/chronoshell
 /plugin install chronoshell@chronoshell
+/reload-plugins
 ```
 
-Ya da elle: bu repoyu klonla, `~/.claude/plugins/` altına koy veya hook'u `hooks/hooks.json`'daki gibi `settings.json`'a ekle.
+Kurulduktan sonra hook **otomatik** devreye girer (kendi `settings.json`'una bir şey eklemen gerekmez). `/timeline` ve `/rewind` komutları kullanılabilir hale gelir.
+
+### Önce denemek (kurulmadan)
+
+```bash
+git clone https://github.com/<github-kullanıcı>/chronoshell
+claude --plugin-dir ./chronoshell
+```
 
 ## Gereksinimler
 
-- Claude Code (hook + plugin desteği)
-- `git` ve `node >= 18` (PATH'te)
+- **Claude Code** (plugin + hook destekli güncel sürüm)
+- **`node` PATH'te** — hook `node` ile çalışır. (Claude Code zaten node ile gelir ama hook ayrı bir `node` süreci başlatır; PATH'te olmalı.)
+- **`git` PATH'te** — snapshot motoru git plumbing kullanır. git yoksa hook sessizce atlar, akışını bozmaz.
+
+## Taşınabilirlik (dürüst notlar)
+
+- ✅ **Windows/macOS/Linux:** Hook *exec form* (`command: "node", args: [...]`) ile tanımlı; `node.exe` gerçek binary olduğu için her platformda çalışır, shell farkına takılmaz.
+- ✅ **Kendi git hook'ların tetiklenmez:** snapshot için `commit-tree`/`read-tree`/`update-ref` plumbing'i kullanılır; bunlar `pre-commit` vb. çalıştırmaz.
+- ⚠️ **İlk snapshot büyük repoda biraz sürebilir** (ilk `git add -A`). Sonraki snapshot'lar kalıcı index sayesinde artımlı ve hızlıdır. Hook 30 sn timeout'ludur.
+- ⚠️ **git/node PATH'te değilse** hook çalışmaz (sessizce atlar) — geri sarma için ikisi de gerekir.
 
 ## Test
 

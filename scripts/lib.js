@@ -43,7 +43,8 @@ function git(root, args, { capture = true } = {}) {
   };
   // core.bare=false + worktree env, snapshot çağrılarında çakışmayı önler.
   // logAllRefUpdates=false: reflog tutma -> silinen ref'lerin object'leri prune edilebilir kalsın.
-  const full = ['-c', 'core.bare=false', '-c', 'gc.auto=0', '-c', 'core.logAllRefUpdates=false', ...args];
+  const full = ['-c', 'core.bare=false', '-c', 'gc.auto=0', '-c', 'core.logAllRefUpdates=false',
+    '-c', 'core.autocrlf=false', '-c', 'core.fileMode=false', ...args];
   return execFileSync('git', full, { env, encoding: capture ? 'utf8' : undefined, stdio: capture ? ['ignore', 'pipe', 'ignore'] : 'ignore' });
 }
 

@@ -1,0 +1,18 @@
+{
+  "name": "chronoshell",
+  "owner": { "name": "Enes" },
+  "metadata": {
+    "description": "Chronoshell — Claude Code için araç-çağrısı seviyesinde zaman makinesi."
+  },
+  "plugins": [
+    {
+      "name": "chronoshell",
+      "source": "./",
+      "description": "Her dosya-değiştiren araç çağrısından önce gölge-git snapshot alır; /rewind ile tek adımı bile geri sararsın. Kendi git'ine dokunmaz.",
+      "version": "0.1.0",
+      "license": "MIT",
+      "category": "workflow",
+      "keywords": ["undo", "rewind", "time-travel", "safety", "autonomy", "hooks", "snapshot"]
+    }
+  ]
+}
