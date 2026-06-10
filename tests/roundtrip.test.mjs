@@ -82,6 +82,39 @@ test('kullanıcının kendi git deposu ASLA değişmez', () => {
   assert.equal(countAfter, countBefore, 'commit sayısı değişmemeli');
 });
 
+test('sırlar (.env) ve .gitignore\'lu dosyalar snapshot\'a GİRMEZ', () => {
+  const root = tmpRepo();
+  write(root, '.gitignore', 'gizli.txt\n');   // ensureInit'ten ÖNCE var olmalı
+  write(root, '.env', 'SECRET=A');
+  write(root, 'gizli.txt', 'sır');
+  write(root, 'kod.js', '1');
+  lib.snapshot(root, { tool: 's1' });
+  write(root, 'kod.js', '2'); lib.snapshot(root, { tool: 's2' });
+  // sonradan sırları değiştir + bekleyen kod değişikliği
+  write(root, '.env', 'SECRET=B'); write(root, 'gizli.txt', 'sır2'); write(root, 'kod.js', '3');
+
+  lib.rewind(root, 1); // s2'ye dön
+  assert.equal(read(root, 'kod.js'), '2', 'tracked kod geri sarılmalı');
+  assert.equal(read(root, '.env'), 'SECRET=B', '.env DOKUNULMAMALI (snapshot dışı)');
+  assert.equal(read(root, 'gizli.txt'), 'sır2', '.gitignore\'lu dosya dokunulmamalı');
+});
+
+test('resolveBack sınır koşulları', () => {
+  const root = tmpRepo();
+  write(root, 'a', '1'); lib.snapshot(root, { tool: '1' });
+  write(root, 'a', '2'); lib.snapshot(root, { tool: '2' });
+  const total = lib.list(root).length; // 2
+  assert.equal(lib.resolveBack(root, 0), null, 'n=0 -> null');
+  assert.ok(lib.resolveBack(root, total), 'n=total -> en eski snapshot');
+  assert.equal(lib.resolveBack(root, total + 1), null, 'n>total -> null');
+});
+
+test('diff tek snapshot varken boş döner (ölü kod yok)', () => {
+  const root = tmpRepo();
+  write(root, 'a', '1'); lib.snapshot(root, { tool: '1' });
+  assert.equal(lib.diff(root), '', 'tek snapshot -> boş');
+});
+
 test('.chronoshell oluşturulur ve kullanıcı git\'inde yerel olarak gizlenir', () => {
   const root = tmpRepo();
   write(root, 'a.txt', '1'); lib.snapshot(root, { tool: 's' });

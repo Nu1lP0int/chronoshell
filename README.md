@@ -34,7 +34,8 @@ Geri sarma işlemi de kaydedilir — yani **geri sarmayı da geri alabilirsin** 
 
 - ✅ Kendi git deponu **değiştirmez** (ayrı `GIT_DIR` + ayrı index). Testlerle kanıtlı.
 - ✅ `.chronoshell/` senin `git status`'ünde **görünmez** (`.git/info/exclude`'a yerel eklenir, tracked dosya değiştirmeden).
-- ✅ `node_modules`, `.venv`, `dist` gibi ağır dizinler ve `.gitignore`'un otomatik dışlanır.
+- ✅ **Sırlar korunur:** `.env`, `*.pem`, `*.key`, `id_rsa`, `.netrc` gibi hassas dosyalar ve senin `.gitignore` desenlerin snapshot'a **hiç girmez** (kurulumda gölge depoya aktarılır). Sırların `.chronoshell`'e sızmaz.
+- ✅ `node_modules`, `.venv`, `dist` gibi ağır dizinler otomatik dışlanır; eski snapshot object'leri periyodik olarak diskten temizlenir.
 - ✅ Hook hata verirse **akışını bloklamaz** — her durumda `exit 0`.
 - ✅ Hiçbir veri cihazdan çıkmaz; saf yerel git nesneleri.
 
