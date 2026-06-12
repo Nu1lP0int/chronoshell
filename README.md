@@ -1,140 +1,140 @@
 # Chronoshell
 
-Claude Code için bir geri-alma katmanı. Claude bir dosyaya dokunmadan önce çalışma ağacının sessiz bir kopyasını alır, böylece sonradan tek bir adımı bile geri sarabilirsin. Konuşmayı kaybetmeden, kendi git geçmişini kirletmeden.
+An undo layer for Claude Code. Before Claude touches a file, it quietly captures a copy of your working tree, so afterwards you can rewind even a single step. Without losing the conversation, and without polluting your own git history.
 
-## Neden var
+## Why it exists
 
-Uzun bir oturumda Claude'a iş yaptırırken şöyle bir an gelir: birkaç adım önce bir şeyin bozulduğunu fark edersin ama tam olarak hangi adımda olduğunu bilemezsin. `git diff` sana koca bir yığın değişiklik gösterir, suçluyu içinden ayıklaman gerekir. Geri almak istersen ya hepsini birden alırsın ya da hiçbirini. Tek bir düzenlemeyi seçip geri sarmanın yolu yoktur.
+During a long session with Claude, you hit a moment like this: you notice something broke a few steps back, but you can't tell exactly which step did it. `git diff` shows you one big pile of changes and leaves you to fish out the culprit yourself. If you want to undo, it's all or nothing — there's no way to pick out a single edit and roll just that one back.
 
-Çoğu kişi bu yüzden Claude'a tam yetki vermekten çekinir. Chronoshell bu çekinceyi ortadan kaldırmak için yazıldı. Claude'un her dosya değiştiren adımı ayrı ayrı kaydedilir, istediğin ana dönersin.
+That's why a lot of people hesitate to give Claude full reign. Chronoshell exists to take that hesitation away. Every file-changing step Claude makes is recorded separately, so you can return to exactly the moment you want.
 
-## Nasıl çalışır
+## How it works
 
-Claude bir `Edit`, `Write` veya `Bash` çalıştırmadan hemen önce bir hook devreye girer ve o anki dosya durumunu kaydeder. Bu kayıtlar senin `.git` deponun içine değil, projenin altındaki ayrı bir `.chronoshell/` klasöründe, kendi gölge git deposunda tutulur. Senin commit'lerine, staging alanına, `git status` çıktına dokunulmaz.
+Right before Claude runs an `Edit`, `Write`, or `Bash`, a hook kicks in and records the current state of your files. These records don't live inside your `.git` repository — they sit in a separate shadow git repository under a `.chronoshell/` folder in your project. Your commits, your staging area, your `git status` output are left untouched.
 
-Kayıt almak için git'in alt seviye komutları (`commit-tree`, `read-tree`, `update-ref`) kullanılır. Bunlar senin `pre-commit` gibi git hook'larını çalıştırmaz, yani kendi kurulumunu hiçbir şekilde tetiklemez. Değişiklik olmayan adımlar (örneğin salt okuma yapan bir `Bash` komutu) atlanır, geçmiş boş yere şişmez.
+To capture each snapshot it uses git's low-level commands (`commit-tree`, `read-tree`, `update-ref`). These don't fire your own git hooks like `pre-commit`, so they never trigger anything in your setup. Steps that change nothing (a read-only `Bash` command, for example) are skipped, so the history doesn't bloat for no reason.
 
-## Kurulum
+## Installation
 
-Dört yol var. Hepsi aynı sonuca varır: kurulumdan sonra hook kendiliğinden devreye girer ve `/timeline` ile `/rewind` komutları kullanılabilir hale gelir. Kendi ayar dosyana elle bir şey eklemen gerekmez. Aşağıda her yolun ne yaptığını ve ne zaman tercih edileceğini açıkladım.
+There are four ways. They all reach the same result: after installing, the hook arms itself and the `/timeline` and `/rewind` commands become available. You don't have to hand-edit any config file. Below I explain what each path does and when to prefer it.
 
-### Yol 1: npm ile (terminalden, en kısası)
+### Option 1: via npm (from the terminal, the shortest)
 
-Terminalden tek komutla kurmak istiyorsan bu yolu kullan. Eklentiyi `~/.claude/skills/chronoshell/` klasörüne kopyalar. Claude Code bu klasörü bir sonraki açılışında otomatik tanır ve `chronoshell@skills-dir` adıyla yükler. Ayrı bir marketplace eklemen ya da kurulum komutu çalıştırman gerekmez.
+Use this if you want a one-line install from the terminal. It copies the plugin into the `~/.claude/skills/chronoshell/` folder. The next time Claude Code starts, it recognizes that folder automatically and loads it as `chronoshell@skills-dir`. You don't need to add a marketplace or run a separate install command.
 
 ```bash
 npx chronoshell install
 ```
 
-Sadece içinde bulunduğun projeye kurmak istersen (`./.claude/skills/` altına), şunu kullan:
+If you only want it in the project you're currently in (under `./.claude/skills/`), use:
 
 ```bash
 npx chronoshell install --project
 ```
 
-Kurduktan sonra Claude Code'u yeniden başlat ya da çalışan oturumda `/reload-plugins` yaz. Kaldırmak için `npx chronoshell uninstall`.
+After installing, restart Claude Code or type `/reload-plugins` in a running session. To remove it, `npx chronoshell uninstall`.
 
-### Yol 2: git clone ile (terminalden, marketplace olmadan)
+### Option 2: via git clone (from the terminal, no marketplace)
 
-npm kullanmak istemiyorsan, depoyu doğrudan Claude'un skills klasörüne klonlayabilirsin. Klasör orada `.claude-plugin/plugin.json` dosyasını içerdiği için Claude Code onu kendiliğinden eklenti olarak yükler.
+If you'd rather not use npm, you can clone the repo straight into Claude's skills folder. Because the folder contains a `.claude-plugin/plugin.json` file, Claude Code loads it as a plugin on its own.
 
 ```bash
-git clone https://github.com/<kullanıcı-adın>/chronoshell ~/.claude/skills/chronoshell
+git clone https://github.com/Nu1lP0int/chronoshell ~/.claude/skills/chronoshell
 ```
 
-Depoyu başka bir yere klonladıysan, içine girip `node bin/cli.js install` çalıştırman da aynı işi yapar. Sonrasında yine `/reload-plugins`.
+If you cloned the repo somewhere else, stepping into it and running `node bin/cli.js install` does the same thing. Then again `/reload-plugins`.
 
-### Yol 3: Claude Code içinden (marketplace)
+### Option 3: from inside Claude Code (marketplace)
 
-Terminalle uğraşmadan, doğrudan Claude Code'un içinden kurmak istersen bu yolu kullan. Önce depoyu bir kaynak olarak tanıtırsın, sonra eklentiyi kurarsın, sonra yenilersin.
+Use this if you'd rather not touch the terminal and install directly from within Claude Code. First you register the repo as a source, then you install the plugin, then you reload.
 
 ```
-/plugin marketplace add <kullanıcı-adın>/chronoshell
+/plugin marketplace add Nu1lP0int/chronoshell
 /plugin install chronoshell@chronoshell
 /reload-plugins
 ```
 
-İlk satır depodaki katalog dosyasını okur ve eklentiyi seçilebilir hale getirir. İkinci satır onu kurar. Üçüncü satır da yeniden başlatmadan aktif eder.
+The first line reads the catalog file in the repo and makes the plugin selectable. The second installs it. The third activates it without a restart.
 
-### Yol 4: Terminal CLI ile marketplace üzerinden (otomasyona uygun)
+### Option 4: via the terminal CLI over the marketplace (automation-friendly)
 
-Kurulumu bir script'e koymak ya da ekip ayarına bağlamak istiyorsan, marketplace'i ayar dosyasına yazıp `claude` komut satırından kurabilirsin. Önce `~/.claude/settings.json` (ya da projedeki `.claude/settings.json`) dosyasına kaynağı ekle:
+If you want to put the install in a script or wire it into a team config, you can write the marketplace into your config file and install from the `claude` command line. First add the source to `~/.claude/settings.json` (or the project's `.claude/settings.json`):
 
 ```json
 {
   "extraKnownMarketplaces": {
     "chronoshell": {
-      "source": { "source": "github", "repo": "<kullanıcı-adın>/chronoshell" }
+      "source": { "source": "github", "repo": "Nu1lP0int/chronoshell" }
     }
   }
 }
 ```
 
-Sonra terminalden kur:
+Then install from the terminal:
 
 ```bash
 claude plugin install chronoshell@chronoshell --scope user
 ```
 
-`--scope user` tüm projelerin için kurar. `--scope project` ise sadece bu depo için kurar ve `.claude/settings.json` üzerinden ekibinle paylaşılır.
+`--scope user` installs it for all your projects. `--scope project` installs it for this repo only and is shared with your team through `.claude/settings.json`.
 
-### Kurmadan önce denemek
+### Trying it before installing
 
-Hiç kurmadan, sadece bir oturum boyunca denemek istersen:
+If you want to try it for just one session without installing at all:
 
 ```bash
-git clone https://github.com/<kullanıcı-adın>/chronoshell
+git clone https://github.com/Nu1lP0int/chronoshell
 claude --plugin-dir ./chronoshell
 ```
 
-Bu, eklentiyi yalnızca o oturum için yükler, kalıcı bir kuruluma dokunmaz.
+This loads the plugin for that session only and doesn't touch any permanent install.
 
-## Kullanım
+## Usage
 
-Kurduktan sonra arka planda kendiliğinden çalışır, sen normal şekilde Claude ile çalışmaya devam edersin. Bir şeyleri geri sarmak istediğinde üç komutun var.
+Once installed, it runs in the background on its own and you keep working with Claude as usual. When you want to rewind something, you have three commands.
 
-`/timeline` son alınan kayıtları listeler. Her satırın yanında kaç adım geri olduğu, hangi aracın tetiklediği ve hangi dosyaya dokunulduğu yazar. Önce buraya bakıp nereye dönmek istediğine karar verirsin.
+`/timeline` lists the most recent snapshots. Each line shows how many steps back it is, which tool triggered it, and which file was touched. You look here first and decide where you want to return.
 
-`/rewind` bir adım geri sarar, yani son değişikliği geri alır. Daha geriye gitmek istersen sayı verirsin: `/rewind 3` üç adım öncesine döner. Geri sarma sırasında çalışma ağacın o ana döner ama konuşma olduğu gibi kalır, anlattıklarını kaybetmezsin.
+`/rewind` rewinds one step — it undoes the last change. To go further back, give it a number: `/rewind 3` returns to three steps earlier. During a rewind your working tree returns to that moment, but the conversation stays exactly as it is, so you don't lose what you explained.
 
-`/rewind --diff` son iki kayıt arasında tam olarak neyin değiştiğini gösterir. Geri sarmadan önce hangi adımın neyi bozduğunu görmek istersen önce bunu çalıştır.
+`/rewind --diff` shows you exactly what changed between the last two snapshots. If you want to see which step broke what before rewinding, run this first.
 
-Geri sarma işleminin kendisi de kaydedilir. Yani yanlış ana döndüysen bir kez daha `/rewind` ile ileri gelebilirsin.
+The rewind itself is also recorded. So if you returned to the wrong moment, one more `/rewind` brings you forward again.
 
-## Ne yapar, ne yapmaz
+## What it does and doesn't do
 
-Senin git deponu değiştirmez. Snapshot'lar ayrı bir gölge depoda durur, commit'lerin ve `git status` çıktın olduğu gibi kalır. Bunu testlerle doğruladım.
+It does not modify your git repository. Snapshots live in a separate shadow repository; your commits and `git status` output stay as they are. I verified this with tests.
 
-`.chronoshell/` klasörü senin `git status`'ünde görünmez. Kurulumda `.git/info/exclude` dosyasına yerel olarak eklenir, bu da takip edilen hiçbir dosyayı değiştirmeden onu gizler.
+The `.chronoshell/` folder doesn't show up in your `git status`. On install it's added locally to `.git/info/exclude`, which hides it without changing any tracked file.
 
-Hassas dosyalar kayda girmez. `.env`, `*.pem`, `*.key`, `id_rsa`, `.netrc` gibi dosyalar ve senin kendi `.gitignore` kuralların gölge depoya aktarılır, böylece sırların `.chronoshell/` içine sızmaz. `node_modules`, `.venv`, `dist` gibi ağır klasörler de dışarıda bırakılır.
+Sensitive files don't enter the records. Files like `.env`, `*.pem`, `*.key`, `id_rsa`, `.netrc`, along with your own `.gitignore` rules, are carried over to the shadow repository, so your secrets don't leak into `.chronoshell/`. Heavy folders like `node_modules`, `.venv`, `dist` are left out too.
 
-Hook hata verse bile akışını durdurmaz. Her durumda sıfır koduyla çıkar, yani bir terslik olsa bile Claude'un işini bloklamaz.
+Even if the hook errors, it doesn't stop your flow. It always exits with a zero code, so even if something goes wrong it won't block Claude's work.
 
-Hiçbir veri cihazından çıkmaz. Her şey yerel git nesneleri olarak durur, ağ trafiği yoktur.
+No data leaves your machine. Everything sits as local git objects; there is no network traffic.
 
-## Gereksinimler
+## Requirements
 
-`node` ve `git` komutlarının `PATH` üzerinde olması gerekir. Hook ayrı bir `node` süreci başlatır, snapshot motoru da git'i kullanır. İkisinden biri yoksa hook sessizce atlar ve senin işini bozmaz, ama geri sarma da çalışmaz. Çoğu geliştiricide ikisi de zaten kuruludur.
+The `node` and `git` commands need to be on your `PATH`. The hook spawns a separate `node` process, and the snapshot engine uses git. If either is missing, the hook silently skips and won't break your work — but rewinding won't work either. Most developers already have both installed.
 
-Büyük bir depoda ilk snapshot biraz uzun sürebilir, çünkü ilk taramada bütün dosyalar okunur. Sonraki snapshot'lar kalıcı bir index sayesinde yalnızca değişeni işler ve hızlıdır. Hook'un 30 saniyelik bir zaman sınırı vardır.
+In a large repo the first snapshot can take a moment, because the first scan reads every file. Later snapshots only process what changed, thanks to a persistent index, and are fast. The hook has a 30-second time limit.
 
-Windows, macOS ve Linux'ta çalışır. Hook, `node`'u doğrudan çağıracak biçimde tanımlı olduğu için kabuk farklarına takılmaz.
+It works on Windows, macOS, and Linux. The hook is defined to call `node` directly, so it doesn't trip over shell differences.
 
-## Kaldırma
+## Uninstalling
 
-npm ile kurduysan `npx chronoshell uninstall`, projeye kurduysan `node bin/cli.js uninstall --project`. Marketplace üzerinden kurduysan `/plugin uninstall chronoshell@chronoshell`. Doğrudan klonladıysan `~/.claude/skills/chronoshell` klasörünü silmen yeterli. Hepsinden sonra `/reload-plugins` ile değişikliği uygula.
+If you installed via npm, `npx chronoshell uninstall`; if into a project, `node bin/cli.js uninstall --project`. If you installed over the marketplace, `/plugin uninstall chronoshell@chronoshell`. If you cloned directly, deleting the `~/.claude/skills/chronoshell` folder is enough. After any of these, apply the change with `/reload-plugins`.
 
-## Geliştirme ve test
+## Development and testing
 
-Motorun davranışı `node --test` ile sınanır: geri alma ve ileri sarma, değişiklik olmayan adımın atlanması, kullanıcı git'ine dokunulmaması, sır dosyalarının kayda girmemesi ve sınır durumları.
+The engine's behavior is checked with `node --test`: undo and redo, skipping a no-change step, leaving the user's git untouched, keeping secret files out of the records, and boundary cases.
 
 ```bash
 npm test
 ```
 
-Kod CommonJS olarak yazıldı, harici bağımlılığı yok. `scripts/lib.js` snapshot ve geri sarma motorunu, `scripts/snapshot.js` hook girişini, `bin/cli.js` ise terminal kurucusunu barındırır.
+The code is written as CommonJS with no external dependencies. `scripts/lib.js` holds the snapshot and rewind engine, `scripts/snapshot.js` the hook entry point, and `bin/cli.js` the terminal installer.
 
-## Lisans
+## License
 
 MIT.
